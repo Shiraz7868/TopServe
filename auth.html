@@ -2,29 +2,114 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Account - TopServe</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
     <div class="container">
-        <div id="auth-container"></div>
+        <div id="auth-container">
+            <!-- Form will be dynamically inserted here -->
+        </div>
     </div>
+
     <script>
         const SUPABASE_URL = 'https://lyqdnxaxisnipeogtzfm.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx5cWRueGF4aXNuaXBlb2d0emZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE2MDA5NzEsImV4cCI6MjA2NzE3Njk3MX0.RLhRacgqtvXk2-qaQ3ZCLYkcshg5_kIN5Mko6WMouWw';
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        // === SAHI TAREEQA SUPABASE INITIALIZE KARNE KA ===
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
         const authContainer = document.getElementById('auth-container');
 
-        const showError = (msg) => { const el = document.getElementById('error-msg'); if(el) {el.innerText = msg; el.style.display = 'block';} };
-        const clearError = () => { const el = document.getElementById('error-msg'); if(el) {el.innerText = ''; el.style.display = 'none';} };
+        const showError = (msg) => { const el = document.getElementById('error-msg'); if(el) { el.innerText = msg; el.style.display = 'block'; } };
+        const clearError = () => { const el = document.getElementById('error-msg'); if(el) { el.innerText = ''; el.style.display = 'none'; } };
 
-        const showLoginForm = () => { authContainer.innerHTML = `<h2>Login</h2><p id="error-msg" class="error-msg"></p><label for="email">Email</label><input type="email" id="login-email" required><label for="password">Password</label><input type="password" id="login-password" required><button id="login-btn">Login</button><p class="switcher">Don't have an account? <a href="#" id="show-register">Register here</a></p>`; document.getElementById('login-btn').addEventListener('click', loginUser); document.getElementById('show-register').addEventListener('click', showRegisterForm); };
-        const showRegisterForm = () => { authContainer.innerHTML = `<h2>Create Account</h2><p id="error-msg" class="error-msg"></p><label for="username">Username</label><input type="text" id="reg-username" required><label for="email">Email</label><input type="email" id="reg-email" required><label for="password">Password (min. 6 characters)</label><input type="password" id="reg-password" required><button id="register-btn">Register</button><p class="switcher">Already have an account? <a href="#" id="show-login">Login here</a></p>`; document.getElementById('register-btn').addEventListener('click', registerUser); document.getElementById('show-login').addEventListener('click', showLoginForm); };
-
-        const loginUser = async () => { clearError(); const btn = document.getElementById('login-btn'); btn.disabled = true; btn.innerText = 'Logging in...'; const { error } = await supabase.auth.signInWithPassword({ email: document.getElementById('login-email').value, password: document.getElementById('login-password').value }); if (error) { showError(error.message); btn.disabled = false; btn.innerText = 'Login'; } else window.location.href = 'dashboard.html'; };
-        const registerUser = async () => { clearError(); const btn = document.getElementById('register-btn'); btn.disabled = true; btn.innerText = 'Registering...'; const { data, error } = await supabase.auth.signUp({ email: document.getElementById('reg-email').value, password: document.getElementById('reg-password').value }); if (error) { showError(error.message); btn.disabled = false; btn.innerText = 'Register'; } else { const { error: profileError } = await supabase.from('profiles').insert({ id: data.user.id, username: document.getElementById('reg-username').value }); if (profileError) { showError(profileError.message); } else { alert("Registration successful! A confirmation link has been sent to your email. Please verify, then login."); showLoginForm(); } btn.disabled = false; btn.innerText = 'Register'; } };
+        const showLoginForm = () => {
+            authContainer.innerHTML = `
+                <h2>Login to TopServe</h2>
+                <p id="error-msg" class="error-msg"></p>
+                <label for="email">Email</label>
+                <input type="email" id="login-email" required>
+                <label for="password">Password</label>
+                <input type="password" id="login-password" required>
+                <button id="login-btn">Login</button>
+                <p class="switcher">Don't have an account? <a href="#" id="show-register">Register here</a></p>
+            `;
+            document.getElementById('login-btn').addEventListener('click', loginUser);
+            document.getElementById('show-register').addEventListener('click', showRegisterForm);
+        };
         
+        const showRegisterForm = () => {
+            authContainer.innerHTML = `
+                <h2>Create Your Account</h2>
+                <p id="error-msg" class="error-msg"></p>
+                <label for="username">Username</label>
+                <input type="text" id="reg-username" required>
+                <label for="email">Email</label>
+                <input type="email" id="reg-email" required>
+                <label for="password">Password (min. 6 characters)</label>
+                <input type="password" id="reg-password" required>
+                <button id="register-btn">Register</button>
+                <p class="switcher">Already have an account? <a href="#" id="show-login">Login here</a></p>
+            `;
+            document.getElementById('register-btn').addEventListener('click', registerUser);
+            document.getElementById('show-login').addEventListener('click', showLoginForm);
+        };
+
+        const loginUser = async () => {
+            clearError();
+            const btn = document.getElementById('login-btn');
+            btn.disabled = true;
+            btn.innerText = 'Logging in...';
+            const { error } = await supabaseClient.auth.signInWithPassword({
+                email: document.getElementById('login-email').value,
+                password: document.getElementById('login-password').value
+            });
+            if (error) {
+                showError(error.message);
+                btn.disabled = false;
+                btn.innerText = 'Login';
+            } else {
+                window.location.href = 'dashboard.html';
+            }
+        };
+
+        const registerUser = async () => {
+            clearError();
+            const btn = document.getElementById('register-btn');
+            btn.disabled = true;
+            btn.innerText = 'Registering...';
+
+            const email = document.getElementById('reg-email').value;
+            const password = document.getElementById('reg-password').value;
+            const username = document.getElementById('reg-username').value.trim();
+
+            if (username.length < 3) {
+                showError("Username must be at least 3 characters.");
+                btn.disabled = false;
+                btn.innerText = 'Register';
+                return;
+            }
+
+            const { data, error } = await supabaseClient.auth.signUp({ email, password });
+            if (error) {
+                showError(error.message);
+            } else if (data.user) {
+                const { error: profileError } = await supabaseClient.from('profiles').insert({ id: data.user.id, username: username });
+                if (profileError) {
+                    showError("Could not create profile: " + profileError.message);
+                } else {
+                    alert("Registration successful! A confirmation link has been sent to your email. Please verify, then login.");
+                    showLoginForm();
+                }
+            }
+            btn.disabled = false;
+            btn.innerText = 'Register';
+        };
+        
+        // Page load hotay hi login form dikhayein
         showLoginForm();
     </script>
 </body>
