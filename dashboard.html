@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard - TopServe</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="dashboard-header">
+            <h2>Welcome, <span id="username">User</span>!</h2>
+            <button id="logout-btn" style="width: auto; background-color: var(--danger-color);">Logout</button>
+        </div>
+        <div class="balance-card">
+            <h3>YOUR BALANCE</h3>
+            <span class="balance-amount"><span id="balance">0.00</span> PKR</span>
+        </div>
+        <p style="font-size: 14px; text-align: center;">To deposit, send JazzCash/EasyPaisa to <strong>0300-1234567</strong> and WhatsApp the Transaction ID with your username.</p>
+        
+        <div class="card">
+            <h2>Place New Order</h2>
+            <label for="service-select">Select Service</label>
+            <select id="service-select"><option value="DeNet Referrals" data-price="10">DeNet Referrals (10 PKR each)</option><option value="Instagram Followers" data-price="20" disabled>Instagram Followers (Soon)</option></select>
+            <label for="ref-code">Your Code / Link</label>
+            <input type="text" id="ref-code" placeholder="Enter your DeNet code...">
+            <label for="ref-count">Quantity (Min 5, Max 20)</label>
+            <input type="number" id="ref-count" min="5" max="20" value="5">
+            <h3>Total Cost: <strong id="total-cost">50.00</strong> PKR</h3>
+            <button id="place-order-btn">Confirm & Place Order</button>
+        </div>
+        <div class="card">
+            <h2>My Recent Orders</h2>
+            <ul id="order-list" class="order-list"></ul>
+        </div>
+    </div>
+    <script>
+        const SUPABASE_URL = 'https://lyqdnxaxisnipeogtzfm.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx5cWRueGF4aXNuaXBlb2d0emZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE2MDA5NzEsImV4cCI6MjA2NzE3Njk3MX0.RLhRacgqtvXk2-qaQ3ZCLYkcshg5_kIN5Mko6WMouWw';
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        let currentUser = null;
+        const checkUser = async () => { const { data: { session } } = await supabase.auth.getSession(); if (!session) { window.location.href = 'auth.html'; return; } const { data, error } = await supabase.from('profiles').select().eq('id', session.user.id).single(); if (error || !data) { alert("Could not fetch profile."); window.location.href = 'auth.html'; } else { currentUser = data; updateUI(); listenToChanges(); } };
+        const updateUI = () => { document.getElementById('username').innerText = currentUser.username; document.getElementById('balance').innerText = parseFloat(currentUser.balance).toFixed(2); loadOrders(); };
+        const loadOrders = async () => { const { data, error } = await supabase.from('orders').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false }); const orderList = document.getElementById('order-list'); orderList.innerHTML = ''; if (data.length === 0) { orderList.innerHTML = '<li>No orders yet.</li>'; return; } data.forEach(order => { const li = document.createElement('li'); li.className = 'order-item'; li.innerHTML = `<strong>${order.service_name} (#${order.id})</strong><br>Code: ${order.referral_code}<br>Progress: ${order.completed_referrals}/${order.total_referrals}<br>Status: <span class="status ${order.status.replace(' ', '-')}">${order.status}</span>`; orderList.appendChild(li); }); };
+        const placeOrder = async () => { const btn = document.getElementById('place-order-btn'); btn.disabled = true; const service = document.getElementById('service-select').value; const referralCode = document.getElementById('ref-code').value.trim(); const referralCount = parseInt(document.getElementById('ref-count').value); const cost = referralCount * 10; if (!referralCode) { alert("Please enter a referral code."); btn.disabled = false; return; } if (currentUser.balance < cost) { alert("Insufficient balance."); btn.disabled = false; return; } const newBalance = currentUser.balance - cost; await supabase.from('profiles').update({ balance: newBalance }).eq('id', currentUser.id); const { error } = await supabase.from('orders').insert({ user_id: currentUser.id, service_name: service, referral_code: referralCode, total_referrals: referralCount }); if (error) { await supabase.from('profiles').update({ balance: currentUser.balance }).eq('id', currentUser.id); alert("Error placing order."); } else { alert("Order placed successfully!"); document.getElementById('ref-code').value = ''; } btn.disabled = false; };
+        const listenToChanges = () => { supabase.channel('public:profiles').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${currentUser.id}` }, payload => { currentUser = payload.new; updateUI(); }).subscribe(); supabase.channel('public:orders').on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `user_id=eq.${currentUser.id}` }, loadOrders).subscribe(); };
+        document.getElementById('logout-btn').addEventListener('click', () => supabase.auth.signOut().then(() => window.location.href = 'index.html'));
+        document.getElementById('place-order-btn').addEventListener('click', placeOrder);
+        document.getElementById('ref-count').addEventListener('input', (e) => { document.getElementById('total-cost').innerText = `${e.target.value * 10}.00`; });
+        checkUser();
+    </script>
+</body>
+</html>
