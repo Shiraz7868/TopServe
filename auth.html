@@ -1,57 +1,43 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Account - TopServe</title><link rel="stylesheet" href="style.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script></head><body>
-<div class="container" id="auth-container">
-    <!-- Form will be dynamically inserted here -->
-</div>
-<script>
-    const SUPABASE_URL = 'https://lyqdnxaxisnipeogtzfm.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx5cWRueGF4aXNuaXBlb2d0emZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE2MDA5NzEsImV4cCI6MjA2NzE3Njk3MX0.RLhRacgqtvXk2-qaQ3ZCLYkcshg5_kIN5Mko6WMouWw';
-    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    const authContainer = document.getElementById('auth-container');
-
-    const showError = (msg) => { const el = document.getElementById('error-msg'); if(el) { el.innerText = msg; el.style.display = 'block'; } };
-    const clearError = () => { const el = document.getElementById('error-msg'); if(el) { el.innerText = ''; el.style.display = 'none'; } };
-
-    const loginTemplate = `<h2>Login to TopServe</h2><p id="error-msg" class="error-msg"></p><label for="email">Email</label><input type="email" id="login-email" required><label for="password">Password</label><input type="password" id="login-password" required><button id="login-btn">Login</button><p class="switcher">Don't have an account? <a href="#" id="show-register">Register here</a></p>`;
-    const registerTemplate = `<h2>Create Your Account</h2><p id="error-msg" class="error-msg"></p><label for="username">Username</label><input type="text" id="reg-username" required><label for="email">Email</label><input type="email" id="reg-email" required><label for="password">Password (min. 6 characters)</label><input type="password" id="reg-password" required><button id="register-btn">Register</button><p class="switcher">Already have an account? <a href="#" id="show-login">Login here</a></p>`;
-
-    function showLoginForm() {
-        authContainer.innerHTML = loginTemplate;
-        document.getElementById('login-btn').addEventListener('click', loginUser);
-        document.getElementById('show-register').addEventListener('click', showRegisterForm);
-    }
-
-    function showRegisterForm() {
-        authContainer.innerHTML = registerTemplate;
-        document.getElementById('register-btn').addEventListener('click', registerUser);
-        document.getElementById('show-login').addEventListener('click', showLoginForm);
-    }
-
-    async function loginUser() {
-        clearError();
-        const btn = document.getElementById('login-btn'); btn.disabled = true; btn.innerText = 'Logging in...';
-        const { error } = await supabaseClient.auth.signInWithPassword({ email: document.getElementById('login-email').value, password: document.getElementById('login-password').value });
-        if (error) { showError(error.message); btn.disabled = false; btn.innerText = 'Login'; } else { window.location.href = 'dashboard.html'; }
-    }
-
-    async function registerUser() {
-        clearError();
-        const btn = document.getElementById('register-btn'); btn.disabled = true; btn.innerText = 'Registering...';
-        const username = document.getElementById('reg-username').value.trim();
-        const email = document.getElementById('reg-email').value;
-        const password = document.getElementById('reg-password').value;
-
-        if (username.length < 3) { showError("Username must be at least 3 characters."); btn.disabled = false; btn.innerText = 'Register'; return; }
-
-        const { data: { user }, error } = await supabaseClient.auth.signUp({ email, password });
-        if (error) { showError(error.message); } 
-        else if (user) {
-            const { error: profileError } = await supabaseClient.from('profiles').insert({ id: user.id, username: username });
-            if (profileError) { showError("Could not create profile: " + profileError.message); } 
-            else { alert("Registration successful! You can now log in."); showLoginForm(); }
-        }
-        btn.disabled = false; btn.innerText = 'Register';
-    }
-    
-    showLoginForm();
-</script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Account - TopServe</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        :root { --primary-color: #6a5acd; --secondary-color: #20c997; --bg-dark: #121828; --surface-color: #1e293b; --text-color: #e2e8f0; --text-muted: #94a3b8; --danger-color: #ef4444; --border-color: #334155; }
+        html, body { height: 100%; margin: 0; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-dark); color: var(--text-color); display: flex; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; }
+        .container { width: 100%; max-width: 400px; background-color: var(--surface-color); padding: 40px; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); border: 1px solid var(--border-color); }
+        h2 { color: var(--primary-light); font-size: 28px; margin-bottom: 30px; text-align: center; margin-top: 0; font-weight: 700; }
+        label { display: block; margin: 15px 0 8px; color: var(--text-muted); font-weight: 600; }
+        input { width: 100%; padding: 12px 15px; margin-bottom: 20px; border: 1px solid var(--border-color); border-radius: 8px; background-color: #29364a; color: var(--text-color); font-size: 16px; box-sizing: border-box; transition: all 0.3s; }
+        input:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(106, 90, 205, 0.3); }
+        button { width: 100%; padding: 15px; margin-top: 20px; border: none; border-radius: 8px; background-color: var(--primary-color); color: white; font-size: 18px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+        button:hover { background-color: #5a4ac2; transform: translateY(-2px); }
+        button:disabled { background-color: #555; cursor: not-allowed; transform: none; }
+        p.switcher { text-align: center; margin-top: 25px; }
+        p.switcher a { color: var(--secondary-color); text-decoration: none; font-weight: 600; }
+        .error-msg { color: var(--danger-color); text-align: center; margin-bottom: 15px; display: none; font-weight: 600; }
+    </style>
+</head>
+<body>
+    <div class="container" id="auth-container"></div>
+    <script>
+        const SUPABASE_URL = 'https://lyqdnxaxisnipeogtzfm.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx5cWRueGF4aXNuaXBlb2d0emZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE2MDA5NzEsImV4cCI6MjA2NzE3Njk3MX0.RLhRacgqtvXk2-qaQ3ZCLYkcshg5_kIN5Mko6WMouWw';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const authContainer = document.getElementById('auth-container');
+        const showError = (msg) => { const el = document.getElementById('error-msg'); if(el) { el.innerText = msg; el.style.display = 'block'; } };
+        const clearError = () => { const el = document.getElementById('error-msg'); if(el) { el.innerText = ''; el.style.display = 'none'; } };
+        const loginTemplate = `<h2>Login to TopServe</h2><p id="error-msg" class="error-msg"></p><label for="email">Email</label><input type="email" id="login-email" required><label for="password">Password</label><input type="password" id="login-password" required><button id="login-btn">Login</button><p class="switcher">Don't have an account? <a href="#" id="show-register">Register here</a></p>`;
+        const registerTemplate = `<h2>Create Your Account</h2><p id="error-msg" class="error-msg"></p><label for="username">Username</label><input type="text" id="reg-username" required><label for="email">Email</label><input type="email" id="reg-email" required><label for="password">Password (min. 6 characters)</label><input type="password" id="reg-password" required><button id="register-btn">Register</button><p class="switcher">Already have an account? <a href="#" id="show-login">Login here</a></p>`;
+        function showLoginForm() { authContainer.innerHTML = loginTemplate; document.getElementById('login-btn').addEventListener('click', loginUser); document.getElementById('show-register').addEventListener('click', showRegisterForm); }
+        function showRegisterForm() { authContainer.innerHTML = registerTemplate; document.getElementById('register-btn').addEventListener('click', registerUser); document.getElementById('show-login').addEventListener('click', showLoginForm); }
+        async function loginUser() { clearError(); const btn = document.getElementById('login-btn'); btn.disabled = true; btn.innerText = 'Logging in...'; const { error } = await supabaseClient.auth.signInWithPassword({ email: document.getElementById('login-email').value, password: document.getElementById('login-password').value }); if (error) { showError(error.message); btn.disabled = false; btn.innerText = 'Login'; } else { window.location.href = 'dashboard.html'; } }
+        async function registerUser() { clearError(); const btn = document.getElementById('register-btn'); btn.disabled = true; btn.innerText = 'Registering...'; const username = document.getElementById('reg-username').value.trim(); const email = document.getElementById('reg-email').value; const password = document.getElementById('reg-password').value; if (username.length < 3) { showError("Username must be at least 3 characters."); btn.disabled = false; btn.innerText = 'Register'; return; } const { data, error } = await supabaseClient.auth.signUp({ email, password }); if (error) { showError(error.message); } else if (data.user) { const { error: profileError } = await supabaseClient.from('profiles').insert({ id: data.user.id, username: username }); if (profileError) { showError("Could not create profile: " + profileError.message); } else { alert("Registration successful! You can now log in."); showLoginForm(); } } btn.disabled = false; btn.innerText = 'Register'; }
+        showLoginForm();
+    </script>
 </body></html>
