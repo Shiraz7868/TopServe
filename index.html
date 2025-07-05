@@ -4,13 +4,29 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TopServe - Your All-in-One Service Panel</title>
-    <link rel="stylesheet" href="style.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+        :root { --primary-color: #6a5acd; --bg-dark: #121828; --text-color: #e2e8f0; --text-muted: #94a3b8; }
+        html, body { height: 100%; margin: 0; }
+        body {
+            font-family: 'Inter', sans-serif; background-color: var(--bg-dark); color: var(--text-color);
+            display: flex; justify-content: center; align-items: center; text-align: center; padding: 20px;
+        }
+        .container { max-width: 700px; }
+        h1 { font-size: 52px; color: white; font-weight: 700; margin-bottom: 15px; }
+        p { font-size: 20px; color: var(--text-muted); margin-bottom: 40px; line-height: 1.6; }
+        button {
+            background: var(--primary-color); color: white; border: none; font-size: 20px;
+            padding: 15px 40px; border-radius: 50px; cursor: pointer; font-weight: 700;
+            transition: transform 0.2s, background-color 0.2s;
+        }
+        button:hover { transform: translateY(-3px); background-color: #5a4ac2; }
+    </style>
 </head>
 <body>
-    <div class="container hero-container">
+    <div class="container">
         <h1>Welcome to TopServe</h1>
-        <h3>Your Ultimate Solution for Digital Growth</h3>
-        <p>Get high-quality, real referrals, followers, and much more, all in one easy-to-use platform. Join us and boost your online presence today!</p>
+        <p>Your ultimate solution for digital growth. Get high-quality referrals, followers, and much more, all in one easy-to-use platform.</p>
         <button onclick="location.href='auth.html'">Get Started Now</button>
     </div>
 </body>
