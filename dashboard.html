@@ -1,97 +1,237 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Dashboard - TopServe</title><link rel="stylesheet" href="style.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script></head><body>
-<div class="container">
-    <div class="dashboard-header">
-        <h2>Welcome, <span id="username">User</span>!</h2>
-        <button id="logout-btn" style="width: auto; background-color: var(--danger-color);">Logout</button>
-    </div>
-    <div class="balance-card">
-        <h3>YOUR BALANCE</h3>
-        <span class="balance-amount"><span id="balance">0.00</span> PKR</span>
-    </div>
-    <p style="font-size: 14px; text-align: center;">To deposit, send JazzCash/EasyPaisa to <strong>923032827566</strong> and WhatsApp the Transaction ID with your username.</p>
-    
-    <div class="card" style="margin-top: 20px;">
-        <h2>Place New Order</h2>
-        <label for="service-select">1. Select Service</label>
-        <select id="service-select"><option value="DeNet Referrals" data-price="10">DeNet Referrals (10 PKR each)</option><option value="Instagram Followers" data-price="20" disabled>Instagram Followers (Soon)</option></select>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - TopServe</title>
+    <!-- Is file ko ab style.css ki zaroorat nahi hai -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* === MUKAMMAL CSS ISI FILE KE ANDAR === */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
         
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-            <div><label for="ref-code">2. Your Code/Link</label><input type="text" id="ref-code" placeholder="DeNet Code"></div>
-            <div><label for="ref-count">3. Quantity</label><input type="number" id="ref-count" min="5" max="20" value="5"></div>
+        :root {
+            --primary-color: #6a5acd; --primary-light: #8a7aff; --secondary-color: #20c997; --bg-dark: #121828;
+            --surface-color: #1e293b; --text-color: #e2e8f0; --text-muted: #94a3b8; --danger-color: #ef4444;
+            --border-color: #334155;
+        }
+
+        html, body { height: 100%; margin: 0; }
+        body {
+            font-family: 'Inter', sans-serif; background-color: var(--bg-dark); color: var(--text-color);
+            display: flex; justify-content: center; align-items: flex-start;
+            min-height: 100vh; padding: 0; box-sizing: border-box;
+        }
+        .container {
+            width: 100%; max-width: 500px;
+            background-color: var(--surface-color); padding: 20px;
+            border-radius: 0; min-height: 100vh; box-sizing: border-box;
+        }
+        
+        /* Desktop View ke liye */
+        @media (min-width: 550px) {
+            body { align-items: center; padding: 20px; }
+            .container { border-radius: 16px; min-height: auto; max-height: 95vh; overflow-y: auto; }
+        }
+
+        h2 { color: var(--primary-light); font-size: 24px; margin-bottom: 20px; text-align: center; margin-top: 0; }
+        h3 { color: var(--text-muted); font-size: 16px; margin-bottom: 5px; font-weight: 400; }
+        label { display: block; margin: 15px 0 8px; color: var(--text-muted); font-weight: 600; }
+        input, select {
+            width: 100%; padding: 12px 15px; margin-bottom: 20px; border: 1px solid var(--border-color);
+            border-radius: 8px; background-color: #29364a; color: var(--text-color); font-size: 16px; box-sizing: border-box;
+        }
+        button {
+            width: 100%; padding: 15px; border: none; border-radius: 8px; background-color: var(--primary-color);
+            color: white; font-size: 18px; font-weight: 700; cursor: pointer; transition: background-color 0.3s;
+        }
+        button:disabled { background-color: #555; cursor: not-allowed; }
+
+        .dashboard-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 15px; }
+        .balance-card { background: linear-gradient(45deg, var(--primary-color), var(--primary-light)); padding: 20px; border-radius: 12px; text-align: center; margin: 15px 0; color: white; }
+        .balance-amount { font-size: 28px; font-weight: 700; }
+        .deposit-info { font-size: 14px; text-align: center; padding: 0 10px; margin-top: 0; }
+        .card { background: #29364a; padding: 25px; border-radius: 12px; margin-top: 20px; }
+        
+        .order-form-grid { display: block; }
+        @media (min-width: 550px) { .order-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; } }
+        
+        #total-cost-card { text-align: center; background: var(--bg-dark); padding: 15px; border-radius: 8px; margin-top: 10px; }
+        #total-cost { color: var(--secondary-color); font-size: 24px; }
+        
+        .order-list { list-style: none; padding: 0; max-height: 250px; overflow-y: auto; }
+        .order-item { background: #3b4b64; padding: 15px; border-radius: 8px; margin-bottom: 10px; font-size: 14px; }
+        .order-item .status { font-weight: bold; }
+        .status.In-Progress { color: #f1c40f; }
+        .status.Completed { color: var(--secondary-color); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="dashboard-header">
+            <h2>Welcome, <span id="username">User</span>!</h2>
+            <button id="logout-btn" style="width: auto; background-color: var(--danger-color);">Logout</button>
+        </div>
+
+        <div class="balance-card">
+            <h3>YOUR BALANCE</h3>
+            <span class="balance-amount"><span id="balance">0.00</span> PKR</span>
+        </div>
+        <p class="deposit-info">To deposit, send JazzCash/EasyPaisa to <strong>+923017815162</strong> and WhatsApp the Transaction ID and your username to the same number.</p>
+        
+        <div class="card">
+            <h2>Place New Order</h2>
+            <label for="service-select">1. Select Service</label>
+            <select id="service-select">
+                <option value="DeNet Referrals" data-price="10">DeNet Referrals (10 PKR each)</option>
+                <option value="Instagram" data-price="20" disabled>Instagram Followers (Soon)</option>
+            </select>
+            <div class="order-form-grid">
+                <div>
+                    <label for="ref-code">2. Your Code/Link</label>
+                    <input type="text" id="ref-code" placeholder="Enter DeNet Code">
+                </div>
+                <div>
+                    <label for="ref-count">3. Quantity</label>
+                    <input type="number" id="ref-count" min="5" max="10" value="5">
+                </div>
+            </div>
+            <div id="total-cost-card">
+                <h3>Total Cost: <strong id="total-cost">50.00 PKR</strong></h3>
+            </div>
+            <button id="place-order-btn">Confirm & Place Order</button>
         </div>
         
-        <div class="balance-card" style="background: var(--surface-color); padding: 15px; margin: 10px 0;">
-            <h3>Total Cost: <strong id="total-cost" style="color: var(--secondary-color); font-size: 24px;">50.00 PKR</strong></h3>
+        <div class="card">
+            <h2>My Recent Orders</h2>
+            <ul id="order-list" class="order-list"></ul>
         </div>
-        <button id="place-order-btn">Confirm & Place Order</button>
     </div>
-    
-    <div class="card">
-        <h2>My Recent Orders</h2>
-        <ul id="order-list" class="order-list"><li>Loading...</li></ul>
-    </div>
-</div>
+
 <script>
     const SUPABASE_URL = 'https://lyqdnxaxisnipeogtzfm.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx5cWRueGF4aXNuaXBlb2d0emZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE2MDA5NzEsImV4cCI6MjA2NzE3Njk3MX0.RLhRacgqtvXk2-qaQ3ZCLYkcshg5_kIN5Mko6WMouWw';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    let currentUser = null;
     
+    let currentUser = null;
+    let userOrders = []; // Orders ko save karne ke liye
+
+    // Function to check if a user is logged in
     async function checkUserSession() {
         const { data: { session } } = await supabaseClient.auth.getSession();
-        if (!session) { window.location.href = 'auth.html'; return; }
+        if (!session) {
+            window.location.href = 'auth.html';
+            return;
+        }
         const { data, error } = await supabaseClient.from('profiles').select().eq('id', session.user.id).single();
-        if (error || !data) { window.location.href = 'auth.html'; } 
-        else { currentUser = data; document.body.style.opacity = 1; updateDashboardUI(); listenToRealtimeChanges(); }
+        if (error || !data) {
+            alert("Could not fetch profile. Please log in again.");
+            window.location.href = 'auth.html';
+        } else {
+            currentUser = data;
+            document.body.style.opacity = 1; // Show body after user is loaded
+            updateDashboardUI();
+            listenToRealtimeChanges();
+        }
     }
 
+    // Function to update the entire UI with user data
     function updateDashboardUI() {
         document.getElementById('username').innerText = currentUser.username;
         document.getElementById('balance').innerText = parseFloat(currentUser.balance).toFixed(2);
         loadUserOrders();
     }
 
+    // Function to load user's orders
     async function loadUserOrders() {
-        const { data } = await supabaseClient.from('orders').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
+        const { data, error } = await supabaseClient.from('orders').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
+        if (error) { console.error('Error loading orders:', error); return; }
+
+        userOrders = data || []; // Update the global orders list
         const orderList = document.getElementById('order-list');
-        orderList.innerHTML = data.length === 0 ? '<li>No orders found.</li>' : data.map(order => `
-            <li class="order-item">
+        orderList.innerHTML = '';
+        if (userOrders.length === 0) {
+            orderList.innerHTML = '<li>No orders found. Place your first order!</li>';
+            return;
+        }
+        userOrders.forEach(order => {
+            const li = document.createElement('li');
+            li.className = 'order-item';
+            li.innerHTML = `
                 <strong>${order.service_name} (#${order.id})</strong><br>
                 Code: ${order.referral_code}<br>
                 Progress: ${order.completed_referrals}/${order.total_referrals}<br>
                 Status: <span class="status ${order.status.replace(' ', '-')}">${order.status}</span>
-            </li>`).join('');
+            `;
+            orderList.appendChild(li);
+        });
     }
 
+    // Function to place a new order with the 10-battery limit logic
     async function placeNewOrder() {
-        const btn = document.getElementById('place-order-btn'); btn.disabled = true; btn.innerText = "Placing...";
-        const service = document.getElementById('service-select').value;
-        const code = document.getElementById('ref-code').value.trim();
-        const count = parseInt(document.getElementById('ref-count').value);
-        const price = document.getElementById('service-select').selectedOptions[0].dataset.price || 10;
-        const cost = count * price;
+        const btn = document.getElementById('place-order-btn');
+        btn.disabled = true;
+        btn.innerText = "Placing...";
 
-        if (!code || count < 5) { alert("Please fill all fields correctly."); btn.disabled = false; btn.innerText = "Confirm & Place Order"; return; }
-        if (currentUser.balance < cost) { alert("Insufficient balance."); btn.disabled = false; btn.innerText = "Confirm & Place Order"; return; }
+        // NAYA BATTERY LIMIT WALA LOGIC
+        const pendingReferrals = userOrders
+            .filter(order => order.status === 'In Progress')
+            .reduce((total, order) => total + order.total_referrals, 0);
+        
+        const newOrderCount = parseInt(document.getElementById('ref-count').value);
+        
+        if ((pendingReferrals + newOrderCount) > 10) {
+            alert(`Battery Limit Exceeded! You have ${pendingReferrals} pending referrals. You can only order ${10 - pendingReferrals} more right now. Please wait for current orders to complete.`);
+            btn.disabled = false;
+            btn.innerText = "Confirm & Place Order";
+            return;
+        }
+
+        const service = document.getElementById('service-select').value;
+        const referralCode = document.getElementById('ref-code').value.trim();
+        const price = document.getElementById('service-select').selectedOptions[0].dataset.price || 10;
+        const cost = newOrderCount * price;
+
+        if (!referralCode || newOrderCount < 5) {
+            alert("Please fill all fields correctly.");
+            btn.disabled = false;
+            btn.innerText = "Confirm & Place Order";
+            return;
+        }
+        if (currentUser.balance < cost) {
+            alert("Insufficient balance. Please deposit first.");
+            btn.disabled = false;
+            btn.innerText = "Confirm & Place Order";
+            return;
+        }
         
         const newBalance = currentUser.balance - cost;
         await supabaseClient.from('profiles').update({ balance: newBalance }).eq('id', currentUser.id);
-        const { error } = await supabaseClient.from('orders').insert({ user_id: currentUser.id, service_name: service, referral_code: code, total_referrals: count });
+        const { error } = await supabaseClient.from('orders').insert({
+            user_id: currentUser.id,
+            service_name: service,
+            referral_code: referralCode,
+            total_referrals: newOrderCount,
+        });
         
         if (error) { 
             await supabaseClient.from('profiles').update({ balance: currentUser.balance }).eq('id', currentUser.id); // Revert balance
             alert("Error placing order: " + error.message);
         } else { 
-            alert("Order placed successfully!"); document.getElementById('ref-code').value = '';
+            alert("Order placed successfully!");
+            document.getElementById('ref-code').value = '';
         }
-        btn.disabled = false; btn.innerText = "Confirm & Place Order";
+        btn.disabled = false;
+        btn.innerText = "Confirm & Place Order";
     }
 
+    // Function to listen for realtime updates
     function listenToRealtimeChanges() {
         supabaseClient.channel('public:profiles').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${currentUser.id}` }, payload => { currentUser = payload.new; updateDashboardUI(); }).subscribe();
         supabaseClient.channel('public:orders').on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `user_id=eq.${currentUser.id}` }, loadUserOrders).subscribe();
     }
     
+    // Event Listeners
     document.getElementById('logout-btn').addEventListener('click', () => supabaseClient.auth.signOut().then(() => window.location.href = 'index.html'));
     document.getElementById('place-order-btn').addEventListener('click', placeNewOrder);
     document.getElementById('ref-count').addEventListener('input', (e) => {
@@ -99,7 +239,8 @@
         document.getElementById('total-cost').innerText = `${e.target.value * price}.00 PKR`;
     });
     
-    document.body.style.opacity = 0; // Hide body until user is checked
+    document.body.style.opacity = 0; // Hide body until user is loaded for a smoother experience
     checkUserSession();
 </script>
-</body></html>
+</body>
+</html>
