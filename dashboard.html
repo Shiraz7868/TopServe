@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - TopServe</title>
-    <!-- Is file ki saari CSS iske andar hi hai -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         /* === MUKAMMAL CSS ISI FILE KE ANDAR === */
@@ -44,7 +43,6 @@
         .dashboard-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 15px; }
         .balance-card { background: linear-gradient(45deg, var(--primary-color), var(--primary-light)); padding: 20px; border-radius: 12px; text-align: center; margin: 15px 0; color: white; }
         .balance-amount { font-size: 28px; font-weight: 700; }
-        .deposit-info { font-size: 14px; text-align: center; padding: 0 10px; margin-top: 0; }
         .card { background: #29364a; padding: 25px; border-radius: 12px; margin-top: 20px; }
         .order-form-grid { display: block; }
         @media (min-width: 550px) { .order-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; } }
@@ -55,6 +53,10 @@
         .order-item .status { font-weight: bold; }
         .status.In-Progress { color: #f1c40f; }
         .status.Completed { color: var(--secondary-color); }
+        .action-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+        .action-buttons button { margin-top: 0; font-size: 16px; }
+        .btn-secondary { background-color: var(--secondary-color); }
+        .btn-tertiary { background-color: #555; }
     </style>
 </head>
 <body>
@@ -68,10 +70,11 @@
             <span class="balance-amount"><span id="balance">0.00</span> PKR</span>
         </div>
         
-        <!-- === YAHAN NAYA DEPOSIT BUTTON ADD KIYA GAYA HAI === -->
-        <button id="deposit-btn" style="background-color: var(--secondary-color); margin-bottom: 20px;">+ Deposit Funds</button>
-        
-        <p class="deposit-info">To deposit, please use the button above. For issues, contact us at <strong>+923032827566</strong>.</p>
+        <!-- NAYE PROFESSIONAL BUTTONS -->
+        <div class="action-buttons">
+            <button id="deposit-btn" class="btn-secondary">+ Deposit Funds</button>
+            <button id="history-btn" class="btn-tertiary">📜 Deposit History</button>
+        </div>
         
         <div class="card">
             <h2>Place New Order</h2>
@@ -81,14 +84,8 @@
                 <option value="Instagram" data-price="20" disabled>Instagram Followers (Soon)</option>
             </select>
             <div class="order-form-grid">
-                <div>
-                    <label for="ref-code">2. Your Code/Link</label>
-                    <input type="text" id="ref-code" placeholder="Enter DeNet Code">
-                </div>
-                <div>
-                    <label for="ref-count">3. Quantity</label>
-                    <input type="number" id="ref-count" min="1" value="5">
-                </div>
+                <div><label for="ref-code">2. Your Code/Link</label><input type="text" id="ref-code" placeholder="Enter DeNet Code"></div>
+                <div><label for="ref-count">3. Quantity</label><input type="number" id="ref-count" min="1" value="5"></div>
             </div>
             <div id="total-cost-card">
                 <h3>Total Cost: <strong id="total-cost">50.00 PKR</strong></h3>
@@ -107,8 +104,6 @@
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx5cWRueGF4aXNuaXBlb2d0emZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE2MDA5NzEsImV4cCI6MjA2NzE3Njk3MX0.RLhRacgqtvXk2-qaQ3ZCLYkcshg5_kIN5Mko6WMouWw';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     let currentUser = null;
-    
-    // Baqi ka JavaScript bilkul waisa hi rahega, sirf ek event listener add hoga
 
     async function checkUserSession() {
         const { data: { session } } = await supabaseClient.auth.getSession();
@@ -125,24 +120,43 @@
     }
 
     async function loadUserOrders() {
-        // ... (loadOrders ka poora code)
+        const { data } = await supabaseClient.from('orders').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
+        const orderList = document.getElementById('order-list');
+        orderList.innerHTML = data.length === 0 ? '<li>No orders found.</li>' : data.map(order => `
+            <li class="order-item">
+                <strong>${order.service_name} (#${order.id})</strong><br>
+                Code: ${order.referral_code}<br>
+                Progress: ${order.completed_referrals}/${order.total_referrals}<br>
+                Status: <span class="status ${order.status.replace(' ', '-')}">${order.status}</span>
+            </li>`).join('');
     }
 
     async function placeNewOrder() {
-        // ... (placeOrder ka poora code, bina limit ke)
+        const btn = document.getElementById('place-order-btn'); btn.disabled = true; btn.innerText = "Placing...";
+        const service = document.getElementById('service-select').value;
+        const referralCode = document.getElementById('ref-code').value.trim();
+        const referralCount = parseInt(document.getElementById('ref-count').value);
+        const price = document.getElementById('service-select').selectedOptions[0].dataset.price || 10;
+        const cost = referralCount * price;
+        if (!referralCode || referralCount < 1) { alert("Please fill all fields correctly."); btn.disabled = false; btn.innerText = "Confirm & Place Order"; return; }
+        if (currentUser.balance < cost) { alert("Insufficient balance."); btn.disabled = false; btn.innerText = "Confirm & Place Order"; return; }
+        const newBalance = currentUser.balance - cost;
+        await supabaseClient.from('profiles').update({ balance: newBalance }).eq('id', currentUser.id);
+        const { error } = await supabaseClient.from('orders').insert({ user_id: currentUser.id, service_name: service, referral_code: referralCode, total_referrals: referralCount });
+        if (error) { await supabaseClient.from('profiles').update({ balance: currentUser.balance }).eq('id', currentUser.id); alert("Error placing order: " + error.message); } 
+        else { alert("Order placed successfully!"); document.getElementById('ref-code').value = ''; loadUserOrders(); }
+        btn.disabled = false; btn.innerText = "Confirm & Place Order";
     }
 
     function listenToRealtimeChanges() {
-        // ... (listenToChanges ka poora code)
+        supabaseClient.channel('public:profiles').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${currentUser.id}` }, payload => { currentUser.balance = payload.new.balance; updateDashboardUI(); }).subscribe();
+        supabaseClient.channel('public:orders').on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `user_id=eq.${currentUser.id}` }, loadUserOrders).subscribe();
     }
     
-    // === NAYA EVENT LISTENER DEPOSIT BUTTON KE LIYE ===
-    document.getElementById('deposit-btn').addEventListener('click', () => {
-        // Aapki Vercel website ka naam yahan daalein
-        // Misaal: https://topserve-123.vercel.app/deposit.html
-        window.location.href = 'deposit.html';
-    });
-    
+    // NAYE BUTTONS KE EVENT LISTENERS
+    document.getElementById('deposit-btn').addEventListener('click', () => { window.location.href = 'deposit.html'; });
+    document.getElementById('history-btn').addEventListener('click', () => { window.location.href = 'history.html'; });
+
     document.getElementById('logout-btn').addEventListener('click', () => supabaseClient.auth.signOut().then(() => window.location.href = 'index.html'));
     document.getElementById('place-order-btn').addEventListener('click', placeNewOrder);
     document.getElementById('ref-count').addEventListener('input', (e) => {
