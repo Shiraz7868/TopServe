@@ -1,12 +1,86 @@
-<!DOCTYPE html><html lang="en"><head><title>Deposit History</title><link rel="stylesheet" href="style.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script></head><body>
-<div class="container">
-    <button onclick="window.location.href='dashboard.html'" style="width:auto; margin-bottom:20px;">← Back to Dashboard</button>
-    <h2>Your Deposit History</h2>
-    <table class="history-table">
-        <thead><tr><th>Request ID</th><th>Amount</th><th>Method</th><th>Status</th><th>Date</th></tr></thead>
-        <tbody id="history-body"></tbody>
-    </table>
-</div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deposit History - TopServe</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* === MUKAMMAL CSS ISI FILE KE ANDAR === */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        :root {
+            --primary-color: #6a5acd; --primary-light: #8a7aff; --secondary-color: #20c997; --bg-dark: #121828;
+            --surface-color: #1e293b; --text-color: #e2e8f0; --text-muted: #94a3b8; --danger-color: #ef4444;
+            --border-color: #334155; --pending-color: #f1c40f; --completed-color: #2ecc71;
+        }
+        html, body { height: 100%; margin: 0; }
+        body {
+            font-family: 'Inter', sans-serif; background-color: var(--bg-dark); color: var(--text-color);
+            display: flex; justify-content: center; align-items: flex-start;
+            min-height: 100vh; padding: 20px; box-sizing: border-box;
+        }
+        .container {
+            width: 100%; max-width: 800px; background-color: var(--surface-color);
+            padding: 30px; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); border: 1px solid var(--border-color);
+        }
+        @media (min-width: 850px) { body { align-items: center; } }
+        h2 { color: var(--primary-light); font-size: 28px; margin-bottom: 20px; text-align: center; margin-top: 0; }
+        button {
+            width: auto; padding: 10px 20px; border: none; border-radius: 8px; background-color: #555;
+            color: white; font-size: 16px; font-weight: 600; cursor: pointer; transition: background-color 0.2s;
+            margin-bottom: 20px;
+        }
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+        .history-table th, .history-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid var(--border-color);
+            text-align: left;
+        }
+        .history-table thead th {
+            color: var(--primary-light);
+            font-weight: 700;
+            position: sticky; top: 0; background: var(--surface-color);
+        }
+        .history-table tbody tr:hover {
+            background-color: #29364a;
+        }
+        .status {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-weight: 700;
+            text-align: center;
+        }
+        .status.Pending { background-color: var(--pending-color); color: #333; }
+        .status.Completed { background-color: var(--completed-color); color: #fff; }
+        .status.Rejected { background-color: var(--danger-color); color: #fff; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <button onclick="window.location.href='dashboard.html'">← Back to Dashboard</button>
+        <h2>Your Deposit History</h2>
+        <div style="max-height: 60vh; overflow-y: auto;">
+            <table class="history-table">
+                <thead>
+                    <tr>
+                        <th>Request ID</th>
+                        <th>Amount</th>
+                        <th>Method</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody id="history-body">
+                    <!-- History rows will be inserted here by JS -->
+                </tbody>
+            </table>
+        </div>
+    </div>
 <script>
     const SUPABASE_URL = 'https://lyqdnxaxisnipeogtzfm.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx5cWRueGF4aXNuaXBlb2d0emZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE2MDA5NzEsImV4cCI6MjA2NzE3Njk3MX0.RLhRacgqtvXk2-qaQ3ZCLYkcshg5_kIN5Mko6WMouWw';
@@ -14,23 +88,42 @@
     
     async function loadHistory() {
         const { data: { user } } = await supabaseClient.auth.getUser();
-        if (!user) { window.location.href = 'auth.html'; return; }
+        if (!user) {
+            window.location.href = 'auth.html';
+            return;
+        }
 
-        const { data, error } = await supabaseClient.from('deposit_requests').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
         const tableBody = document.getElementById('history-body');
-        tableBody.innerHTML = '';
-        if (data.length === 0) { tableBody.innerHTML = `<tr><td colspan="5" style="text-align:center;">No history found.</td></tr>`; return; }
-        data.forEach(req => {
-            const row = `<tr>
-                <td>${req.id}</td>
+        tableBody.innerHTML = `<tr><td colspan="5" style="text-align:center;">Loading history...</td></tr>`;
+
+        const { data, error } = await supabaseClient.from('deposit_requests')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false });
+            
+        if (error) {
+            console.error("Error loading history:", error);
+            tableBody.innerHTML = `<tr><td colspan="5" style="text-align:center;">Could not load history.</td></tr>`;
+            return;
+        }
+
+        if (data.length === 0) {
+            tableBody.innerHTML = `<tr><td colspan="5" style="text-align:center;">No deposit history found.</td></tr>`;
+            return;
+        }
+
+        tableBody.innerHTML = data.map(req => `
+            <tr>
+                <td>#${req.id}</td>
                 <td>${req.amount} PKR</td>
                 <td>${req.method}</td>
                 <td><span class="status ${req.status}">${req.status}</span></td>
                 <td>${new Date(req.created_at).toLocaleDateString()}</td>
-            </tr>`;
-            tableBody.innerHTML += row;
-        });
+            </tr>
+        `).join('');
     }
+
     loadHistory();
 </script>
-</body></html>
+</body>
+</html>
