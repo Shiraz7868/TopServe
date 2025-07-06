@@ -1,59 +1,172 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Admin Panel - TopServe</title><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-:root { /* ... (Poora CSS pichle jawab se) ... */ }
-html, body { /* ... */ }
-body { /* ... */ }
-.container { max-width: 900px !important; /* ... */ }
-h1, h2, label, input, button { /* ... */ }
-.card { /* ... */ }
-.admin-grid { display: grid; grid-template-columns: 1fr; gap: 25px; }
-@media (min-width: 992px) { .admin-grid { grid-template-columns: 1fr 1fr; } }
-.user-management { display: grid; grid-template-columns: 2fr 1fr auto; gap: 15px; align-items: flex-end; }
-.order-list { list-style: none; padding: 0; max-height: 50vh; overflow-y: auto; }
-.order-item { background: #3b4b64; padding: 15px; border-radius: 8px; margin-bottom: 10px; }
-.deposit-request-item .screenshot-image { max-width: 150px; border-radius: 4px; cursor: pointer; margin-top: 10px; }
-@media (max-width: 768px) { /* ... */ }
-</style></head><body>
-<div class="container admin-container">
-    <h1>Admin Panel</h1>
-    <div class="admin-grid">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - TopServe</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        :root {
+            --primary-color: #6a5acd; --primary-light: #8a7aff; --secondary-color: #20c997; --bg-dark: #121828;
+            --surface-color: #1e293b; --text-color: #e2e8f0; --text-muted: #94a3b8; --danger-color: #ef4444;
+            --border-color: #334155;
+        }
+        html, body { height: 100%; margin: 0; }
+        body {
+            font-family: 'Inter', sans-serif; background-color: var(--bg-dark); color: var(--text-color);
+            display: flex; justify-content: center; align-items: flex-start;
+            min-height: 100vh; padding: 20px; box-sizing: border-box;
+        }
+        .container {
+            width: 100%; max-width: 1100px; background-color: var(--surface-color);
+            padding: 30px; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); border: 1px solid var(--border-color);
+        }
+        h1, h2 { text-align: center; margin-top: 0; font-weight: 700; }
+        h1 { color: white; font-size: 32px; margin-bottom: 30px; }
+        h2 { color: var(--primary-light); font-size: 22px; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; }
+        label { display: block; margin-bottom: 8px; color: var(--text-muted); font-weight: 600; }
+        input {
+            width: 100%; padding: 12px 15px; margin-bottom: 10px; border: 1px solid var(--border-color);
+            border-radius: 8px; background-color: #29364a; color: var(--text-color); font-size: 16px; box-sizing: border-box;
+        }
+        button {
+            padding: 12px 20px; border: none; border-radius: 8px; background-color: var(--primary-color);
+            color: white; font-size: 16px; font-weight: 700; cursor: pointer; transition: background-color 0.2s;
+        }
+        .card { background: #29364a; padding: 25px; border-radius: 12px; margin-bottom: 25px; }
+        .admin-grid { display: grid; grid-template-columns: 1fr; gap: 25px; }
+        @media (min-width: 992px) { .admin-grid { grid-template-columns: 1fr 1fr; } }
+        .user-management { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; align-items: flex-end; }
+        .order-list { list-style: none; padding: 0; max-height: 50vh; overflow-y: auto; }
+        .list-item { background: #3b4b64; padding: 15px; border-radius: 8px; margin-bottom: 10px; font-size: 14px; }
+        .list-item strong { color: var(--primary-light); }
+        .list-item a { color: var(--secondary-color); font-weight: bold; }
+        .screenshot-image { max-width: 150px; border-radius: 4px; cursor: pointer; margin-top: 10px; border: 2px solid var(--border-color); }
+        .controls { margin-top: 15px; display: flex; gap: 10px; }
+        .controls button { width: auto; font-size: 14px; padding: 8px 12px; }
+        .order-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .order-controls input { width: 80px; padding: 8px; margin-bottom: 0; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="container admin-container">
+        <h1>Admin Panel</h1>
+        
         <div class="card">
-            <h2>Pending Deposit Requests</h2>
-            <ul id="deposit-requests-list" class="order-list"><li>Loading...</li></ul>
+            <h2>Manage User Balance (Manual)</h2>
+            <div class="user-management">
+                <div><label>Username or Email</label><input type="text" id="user-search" placeholder="Enter username..."></div>
+                <div><label>Amount (PKR)</label><input type="number" id="deposit-amount" placeholder="e.g., 100"></div>
+                <button id="add-balance-btn">Add Balance</button>
+            </div>
         </div>
-        <div class="card">
-            <h2>All Pending Orders</h2>
-            <ul id="admin-order-list" class="order-list"><li>Loading...</li></ul>
+
+        <div class="admin-grid">
+            <div class="card">
+                <h2>Pending Deposit Requests</h2>
+                <ul id="deposit-requests-list" class="order-list"><li>Loading...</li></ul>
+            </div>
+            <div class="card">
+                <h2>All Pending Orders</h2>
+                <ul id="admin-order-list" class="order-list"><li>Loading...</li></ul>
+            </div>
         </div>
     </div>
-    <div class="card">
-        <h2>Manage User Balance (Manual)</h2>
-        <div class="user-management">
-            <!-- ... (Manual Balance HTML) ... -->
-        </div>
-    </div>
-</div>
+
 <script>
     const SUPABASE_URL = 'https://lyqdnxaxisnipeogtzfm.supabase.co';
-    // === YAHAN APNI SECRET SERVICE_ROLE KEY PASTE KAREIN ===
+    // === SAB SE ZAROORI: YAHAN APNI SECRET SERVICE_ROLE KEY PASTE KAREIN ===
     const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx5cWRueGF4aXNuaXBlb2d0emZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE2MDA5NzEsImV4cCI6MjA2NzE3Njk3MX0.RLhRacgqtvXk2-qaQ3ZCLYkcshg5_kIN5Mko6WMouWw'; 
     const supabaseAdmin = supabase.createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
-    
+
     async function loadDepositRequests() {
         const list = document.getElementById('deposit-requests-list');
-        const { data, error } = await supabaseAdmin.from('deposit_requests').select(`*, profile:profiles(username)`).eq('status', 'Pending').order('created_at');
+        const { data, error } = await supabaseAdmin.from('deposit_requests').select(`*, profile:profiles(username)`).eq('status', 'Pending').order('created_at', { ascending: true });
         if (error) { list.innerHTML = '<li>Error loading requests.</li>'; return; }
-        if (!data || data.length === 0) { list.innerHTML = '<li>No pending deposit requests.</li>'; return; }
+        if (!data || data.length === 0) { list.innerHTML = '<li>No pending deposit requests. Great job!</li>'; return; }
         list.innerHTML = data.map(req => `
-            <li class="deposit-request-item">
+            <li class="list-item">
                 User: <strong>${req.profile ? req.profile.username : 'N/A'}</strong> | Amount: <strong>${req.amount} PKR</strong><br>
                 Method: ${req.method} | Sender: ${req.sender_number}<br>
+                Time: ${new Date(req.created_at).toLocaleString()}<br>
                 <img src="${req.screenshot_base64}" alt="Screenshot" class="screenshot-image" onclick="window.open(this.src, '_blank')">
-                <div style="margin-top:15px; display:flex; gap:10px;">
+                <div class="controls">
                     <button class="approve-btn" data-req-id="${req.id}" data-user-id="${req.user_id}" data-amount="${req.amount}" style="background:var(--secondary-color);">Approve</button>
                     <button class="reject-btn" data-req-id="${req.id}" style="background:var(--danger-color);">Reject</button>
                 </div>
             </li>`).join('');
     }
-    // ... (Baqi ka poora admin.html ka JavaScript pichle jawabon se)
-</script></body></html>
+
+    async function loadAllOrders() {
+        const list = document.getElementById('admin-order-list');
+        const { data, error } = await supabaseAdmin.from('orders').select(`*, profile:profiles(username)`).neq('status', 'Completed').order('created_at', { ascending: true });
+        if (error) { list.innerHTML = '<li>Error loading orders.</li>'; return; }
+        if (!data || data.length === 0) { list.innerHTML = '<li>No pending orders.</li>'; return; }
+        list.innerHTML = data.map(order => `
+            <li class="list-item">
+                <div class="order-details">
+                    User: <strong>${order.profile ? order.profile.username : 'N/A'}</strong> | Service: <strong>${order.service_name}</strong><br>
+                    Order ID: ${order.id} | Code: ${order.referral_code}
+                </div>
+                <div class="order-controls">
+                    Progress: <input type="number" value="${order.completed_referrals}" class="completed-input" min="0" max="${order.total_referrals}"> / ${order.total_referrals}
+                    <button class="update-progress" data-id="${order.id}">Update</button>
+                    <button class="mark-complete" data-id="${order.id}" data-total="${order.total_referrals}" style="background-color: #27ae60;">Complete</button>
+                </div>
+            </li>`).join('');
+    }
+
+    async function addBalance() {
+        const btn = document.getElementById('add-balance-btn'); btn.disabled = true;
+        const username = document.getElementById('user-search').value.trim();
+        const amount = parseFloat(document.getElementById('deposit-amount').value);
+        if (!username || !amount) { alert("Please enter both username and amount."); btn.disabled = false; return; }
+        const { data: profile, error } = await supabaseAdmin.from('profiles').select('id, balance').eq('username', username).single();
+        if (error || !profile) { alert("User not found."); btn.disabled = false; return; }
+        const newBalance = (parseFloat(profile.balance) || 0) + amount;
+        const { error: updateError } = await supabaseAdmin.from('profiles').update({ balance: newBalance }).eq('id', profile.id);
+        if (updateError) { alert("Error: " + updateError.message); } 
+        else { alert(`Balance updated for ${username}.`); document.getElementById('user-search').value = ''; document.getElementById('deposit-amount').value = ''; }
+        btn.disabled = false;
+    }
+
+    document.getElementById('add-balance-btn').addEventListener('click', addBalance);
+
+    document.getElementById('admin-order-list').addEventListener('click', async (e) => {
+        const orderId = e.target.dataset.id; if (!orderId) return;
+        if (e.target.classList.contains('update-progress')) {
+            const completedCount = e.target.closest('.order-controls').querySelector('.completed-input').value;
+            await supabaseAdmin.from('orders').update({ completed_referrals: completedCount }).eq('id', orderId);
+        } else if (e.target.classList.contains('mark-complete')) {
+            const total = e.target.dataset.total;
+            await supabaseAdmin.from('orders').update({ status: 'Completed', completed_referrals: total }).eq('id', orderId);
+        }
+        loadAllOrders();
+    });
+
+    document.getElementById('deposit-requests-list').addEventListener('click', async (e) => {
+        const reqId = e.target.dataset.reqId; if (!reqId) return;
+        const originalText = e.target.innerText;
+        e.target.innerText = 'Processing...'; e.target.disabled = true;
+
+        if (e.target.classList.contains('approve-btn')) {
+            const userId = e.target.dataset.userId; const amount = parseFloat(e.target.dataset.amount);
+            const { data: profile } = await supabaseAdmin.from('profiles').select('balance').eq('id', userId).single();
+            const newBalance = (parseFloat(profile.balance) || 0) + amount;
+            await supabaseAdmin.from('profiles').update({ balance: newBalance }).eq('id', userId);
+            await supabaseAdmin.from('deposit_requests').update({ status: 'Completed' }).eq('id', reqId);
+            alert("Deposit approved!");
+        } else if (e.target.classList.contains('reject-btn')) {
+            await supabaseAdmin.from('deposit_requests').update({ status: 'Rejected' }).eq('id', reqId);
+            alert("Request rejected.");
+        }
+        loadDepositRequests();
+    });
+    
+    // Initial Load
+    loadDepositRequests();
+    loadAllOrders();
+</script>
+</body>
+                    </html>
