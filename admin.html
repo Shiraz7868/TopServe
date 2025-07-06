@@ -1,149 +1,78 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Panel - TopServe</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        /* === MUKAMMAL CSS ISI FILE KE ANDAR === */
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-        :root {
-            --primary-color: #6a5acd; --primary-light: #8a7aff; --secondary-color: #20c997; --bg-dark: #121828;
-            --surface-color: #1e293b; --text-color: #e2e8f0; --text-muted: #94a3b8; --danger-color: #ef4444;
-            --border-color: #334155;
-        }
-        html, body { height: 100%; margin: 0; }
-        body {
-            font-family: 'Inter', sans-serif; background-color: var(--bg-dark); color: var(--text-color);
-            display: flex; justify-content: center; align-items: flex-start;
-            min-height: 100vh; padding: 20px; box-sizing: border-box;
-        }
-        .container {
-            width: 100%; max-width: 900px; background-color: var(--surface-color);
-            padding: 30px; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); border: 1px solid var(--border-color);
-        }
-        h1, h2 { color: var(--primary-light); text-align: center; margin-bottom: 25px; margin-top: 0; font-weight: 700; }
-        h1 { font-size: 32px; }
-        h2 { font-size: 24px; }
-        label { display: block; margin-bottom: 8px; color: var(--text-muted); font-weight: 600; }
-        input {
-            width: 100%; padding: 12px 15px; margin-bottom: 10px; border: 1px solid var(--border-color);
-            border-radius: 8px; background-color: #29364a; color: var(--text-color); font-size: 16px; box-sizing: border-box;
-        }
-        button {
-            padding: 12px 20px; border: none; border-radius: 8px; background-color: var(--primary-color);
-            color: white; font-size: 16px; font-weight: 700; cursor: pointer; transition: background-color 0.2s;
-        }
-        .card { background: #29364a; padding: 25px; border-radius: 12px; margin-bottom: 20px; }
-        .user-management {
-            display: grid;
-            grid-template-columns: 1fr 1fr auto;
-            gap: 15px;
-            align-items: flex-end;
-        }
-        .order-list { list-style: none; padding: 0; max-height: 60vh; overflow-y: auto; }
-        .order-item {
-            background: #3b4b64; padding: 15px; border-radius: 8px; margin-bottom: 10px; font-size: 14px;
-            display: grid; grid-template-columns: 1fr auto; gap: 15px; align-items: center;
-        }
-        .order-details { line-height: 1.6; }
-        .order-controls { display: flex; align-items: center; gap: 10px; }
-        .order-controls input { width: 80px; margin-bottom: 0; text-align: center; }
-        .order-controls button { width: auto; font-size: 14px; padding: 8px 12px; }
-    </style>
-</head>
-<body>
+<!-- admin.html (Updated Version) -->
+<!DOCTYPE html><html lang="en"><head>
+    <title>Admin Panel</title>
+    <!-- ... (head content) ... -->
+</head><body>
     <div class="container admin-container">
         <h1>Admin Panel</h1>
-        <div class="card user-management">
-            <div>
-                <label>Username or Email</label>
-                <input type="text" id="user-search" placeholder="Enter username...">
-            </div>
-            <div>
-                <label>Amount (PKR)</label>
-                <input type="number" id="deposit-amount" placeholder="e.g., 100">
-            </div>
-            <button id="add-balance-btn">Add Balance</button>
-        </div>
+        
+        <!-- Deposit Requests Section (Naya) -->
         <div class="card">
-            <h2>All Pending Orders</h2>
-            <ul id="admin-order-list" class="order-list"><li>Loading orders...</li></ul>
+            <h2>Pending Deposit Requests</h2>
+            <ul id="deposit-requests-list" class="order-list"></ul>
         </div>
+
+        <!-- User Balance Management Section (Purana) -->
+        <div class="card user-management">...</div>
+        
+        <!-- All Orders Section (Purana) -->
+        <div class="card">...</div>
     </div>
-
-    <script>
-        const SUPABASE_URL = 'https://lyqdnxaxisnipeogtzfm.supabase.co';
-        
-        // === SAB SE ZAROORI: YAHAN APNI SECRET SERVICE_ROLE KEY PASTE KAREIN ===
-        // Yeh key aapko "Project Settings -> API -> service_role" se milegi
-        const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx5cWRueGF4aXNuaXBlb2d0emZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE2MDA5NzEsImV4cCI6MjA2NzE3Njk3MX0.RLhRacgqtvXk2-qaQ3ZCLYkcshg5_kIN5Mko6WMouWw'; 
-        
-        const supabaseAdmin = supabase.createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
-
-        const loadAllOrders = async () => {
-            const { data, error } = await supabaseAdmin.from('orders').select(`*, profile:profiles(username)`).neq('status', 'Completed').order('created_at', { ascending: true });
-            if (error) { console.error("Error loading orders:", error); return; }
-            const orderList = document.getElementById('admin-order-list');
-            orderList.innerHTML = '';
-            if (data.length === 0) { orderList.innerHTML = '<li>No pending orders. Great job!</li>'; return; }
-            data.forEach(order => {
-                const li = document.createElement('li');
-                li.className = 'order-item';
-                li.innerHTML = `
-                    <div class="order-details">
-                        User: <strong>${order.profile ? order.profile.username : 'N/A'}</strong> | Service: <strong>${order.service_name}</strong><br>
-                        Order ID: ${order.id} | Code: ${order.referral_code}
-                    </div>
-                    <div class="order-controls">
-                        Progress: <input type="number" value="${order.completed_referrals}" class="completed-input" min="0" max="${order.total_referrals}"> / ${order.total_referrals}
-                        <button class="update-progress" data-id="${order.id}">Update</button>
-                        <button class="mark-complete" data-id="${order.id}" data-total="${order.total_referrals}" style="background-color: #27ae60;">Complete</button>
-                    </div>`;
-                orderList.appendChild(li);
-            });
-        };
-
-        const addBalance = async () => {
-            const btn = document.getElementById('add-balance-btn');
-            btn.disabled = true;
-            const username = document.getElementById('user-search').value.trim();
-            const amount = parseFloat(document.getElementById('deposit-amount').value);
-            if (!username || !amount) { alert("Please enter both username and amount."); btn.disabled = false; return; }
-
-            const { data: profile, error } = await supabaseAdmin.from('profiles').select('id, balance').eq('username', username).single();
-            if (error || !profile) { alert("User not found."); btn.disabled = false; return; }
-            
-            const currentBalance = parseFloat(profile.balance) || 0;
-            const newBalance = currentBalance + amount;
-
-            const { error: updateError } = await supabaseAdmin.from('profiles').update({ balance: newBalance }).eq('id', profile.id);
-            if (updateError) {
-                alert("Error updating balance: " + updateError.message);
-            } else {
-                alert(`Balance updated for ${username}. New balance is now ${newBalance.toFixed(2)} PKR.`);
-                document.getElementById('user-search').value = '';
-                document.getElementById('deposit-amount').value = '';
-            }
-            btn.disabled = false;
-        };
-
-        document.getElementById('add-balance-btn').addEventListener('click', addBalance);
-        document.getElementById('admin-order-list').addEventListener('click', async (e) => {
-            const orderId = e.target.dataset.id;
-            if (!orderId) return;
-            if (e.target.classList.contains('update-progress')) {
-                const completedCount = e.target.closest('.order-controls').querySelector('.completed-input').value;
-                await supabaseAdmin.from('orders').update({ completed_referrals: completedCount }).eq('id', orderId);
-            } else if (e.target.classList.contains('mark-complete')) {
-                const total = e.target.dataset.total;
-                await supabaseAdmin.from('orders').update({ status: 'Completed', completed_referrals: total }).eq('id', orderId);
-            }
-            loadAllOrders(); // Refresh the list
+<script>
+    const SUPABASE_URL = 'https://lyqdnxaxisnipeogtzfm.supabase.co';
+    const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx5cWRueGF4aXNuaXBlb2d0emZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE2MDA5NzEsImV4cCI6MjA2NzE3Njk3MX0.RLhRacgqtvXk2-qaQ3ZCLYkcshg5_kIN5Mko6WMouWw';
+    const supabaseAdmin = supabase.createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+    
+    // Naya function deposit requests load karne ke liye
+    async function loadDepositRequests() {
+        const { data, error } = await supabaseAdmin.from('deposit_requests').select(`*, profile:profiles(username)`).eq('status', 'Pending').order('created_at');
+        const list = document.getElementById('deposit-requests-list');
+        list.innerHTML = '';
+        if (data.length === 0) { list.innerHTML = '<li>No pending deposit requests.</li>'; return; }
+        data.forEach(req => {
+            const li = document.createElement('li');
+            li.className = 'order-item';
+            li.innerHTML = `
+                User: <strong>${req.profile.username}</strong> | Amount: <strong>${req.amount} PKR</strong><br>
+                Method: ${req.method} | Sender: ${req.sender_number}<br>
+                <a href="${req.screenshot_url}" target="_blank">View Screenshot</a>
+                <div style="margin-top:10px;">
+                    <button class="approve-btn" data-req-id="${req.id}" data-user-id="${req.user_id}" data-amount="${req.amount}">Approve</button>
+                    <button class="reject-btn" data-req-id="${req.id}" style="background:var(--danger-color)">Reject</button>
+                </div>`;
+            list.appendChild(li);
         });
-        
-        loadAllOrders();
-    </script>
-</body>
-</html>
+    }
+
+    // Approve/Reject ke liye Event Listener
+    document.getElementById('deposit-requests-list').addEventListener('click', async (e) => {
+        const reqId = e.target.dataset.reqId;
+        if (!reqId) return;
+
+        if (e.target.classList.contains('approve-btn')) {
+            const userId = e.target.dataset.userId;
+            const amount = parseFloat(e.target.dataset.amount);
+            
+            // 1. User ka balance get karein
+            const { data: profile } = await supabaseAdmin.from('profiles').select('balance').eq('id', userId).single();
+            const newBalance = (parseFloat(profile.balance) || 0) + amount;
+
+            // 2. Balance update karein
+            await supabaseAdmin.from('profiles').update({ balance: newBalance }).eq('id', userId);
+            
+            // 3. Request ko "Completed" mark karein
+            await supabaseAdmin.from('deposit_requests').update({ status: 'Completed' }).eq('id', reqId);
+            
+            alert("Deposit approved and balance updated!");
+        } else if (e.target.classList.contains('reject-btn')) {
+            await supabaseAdmin.from('deposit_requests').update({ status: 'Rejected' }).eq('id', reqId);
+            alert("Request rejected.");
+        }
+        loadDepositRequests();
+    });
+
+    // Page load hotay hi baqi functions ke sath isay bhi call karein
+    loadDepositRequests();
+    // loadAllOrders();
+</script>
+</body></html>
