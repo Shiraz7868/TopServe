@@ -1,206 +1,80 @@
+<!-- deposit.html (Naya Base64 wala logic) -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Deposit Funds - TopServe</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- ... (head content waisa hi rahega) ... -->
     <style>
-        /* === MUKAMMAL CSS ISI FILE KE ANDAR === */
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-        :root {
-            --primary-color: #6a5acd; --primary-light: #8a7aff; --secondary-color: #20c997; --bg-dark: #121828;
-            --surface-color: #1e293b; --text-color: #e2e8f0; --text-muted: #94a3b8; --danger-color: #ef4444;
-            --border-color: #334155;
-        }
-        html, body { height: 100%; margin: 0; }
-        body {
-            font-family: 'Inter', sans-serif; background-color: var(--bg-dark); color: var(--text-color);
-            display: flex; justify-content: center; align-items: center;
-            min-height: 100vh; padding: 20px; box-sizing: border-box;
-        }
-        .container {
-            width: 100%; max-width: 500px; background-color: var(--surface-color);
-            padding: 30px; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); border: 1px solid var(--border-color);
-        }
-        h2 { color: var(--primary-light); font-size: 28px; margin-bottom: 10px; text-align: center; margin-top: 0; }
-        h3 { color: var(--text-muted); font-size: 16px; margin-bottom: 30px; font-weight: 400; text-align: center; }
-        label { display: block; margin: 15px 0 8px; color: var(--text-muted); font-weight: 600; }
-        input, select {
-            width: 100%; padding: 12px 15px; margin-bottom: 20px; border: 1px solid var(--border-color);
-            border-radius: 8px; background-color: #29364a; color: var(--text-color); font-size: 16px; box-sizing: border-box;
-        }
-        button {
-            width: 100%; padding: 15px; margin-top: 20px; border: none; border-radius: 8px; background-color: var(--primary-color);
-            color: white; font-size: 18px; font-weight: 700; cursor: pointer; transition: all 0.2s;
-        }
-        button:hover { background-color: #5a4ac2; transform: translateY(-2px); }
-        button:disabled { background-color: #555; cursor: not-allowed; transform: none; }
-        
-        .step { display: none; }
-        .step.active { display: block; animation: fadeIn 0.5s; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        
-        .payment-instructions { background: #29364a; padding: 20px; border-radius: 8px; text-align: center; border: 1px dashed var(--primary-color); }
-        .payment-instructions p { margin: 10px 0; }
-        .payment-instructions strong { color: var(--secondary-color); font-size: 20px; word-break: break-all; }
-        #screenshot-preview { max-width: 100%; max-height: 200px; margin-top: 15px; border-radius: 8px; display: none; }
+        /* ... (CSS waisi hi rahegi) ... */
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- Step 1: User se maloomat lena -->
-        <div id="step1" class="step active">
-            <h2>Make a Deposit</h2>
-            <h3>Step 1 of 2: Enter Details</h3>
-            <label for="method">Payment Method</label>
-            <select id="method"><option value="JazzCash">JazzCash</option><option value="EasyPaisa">EasyPaisa</option></select>
-            <label for="amount">Amount (PKR)</label>
-            <input type="number" id="amount" placeholder="e.g., 500" min="50">
-            <label for="sender-number">Your Account Number (Jis se paise bhejenge)</label>
-            <input type="text" id="sender-number" placeholder="e.g., 03001234567">
-            <button id="next-btn">Next Step</button>
-        </div>
-
-        <!-- Step 2: Payment ke liye hidayat dena -->
-        <div id="step2" class="step">
-            <h2>Send Payment</h2>
-            <h3>Step 2 of 2: Upload Proof</h3>
-            <div class="payment-instructions">
-                <p>Please send <strong id="payment-amount"></strong> to the following <strong id="payment-method"></strong> account:</p>
-                <!-- Naya Phone Number Add Kar Diya Gaya Hai -->
-                <strong id="receiver-number">+923032827566</strong>
-                <p style="margin-top:20px;">After sending, upload the transaction screenshot below.</p>
-            </div>
-            <label for="screenshot-file" style="margin-top:20px;">Upload Transaction Screenshot</label>
-            <input type="file" id="screenshot-file" accept="image/*" style="padding: 10px;">
-            <img id="screenshot-preview" src="" alt="Screenshot Preview">
-            <button id="submit-deposit-btn" disabled>Submit Deposit Request</button>
-            <button id="back-btn" style="background: #555; margin-top:10px;">Back</button>
-        </div>
-        
-        <!-- Step 3: Confirmation aur Pending Status -->
-        <div id="step3" class="step">
-            <h2>Request Submitted!</h2>
-            <div class="card" style="text-align:center;">
-                <h3>Your request is Pending</h3>
-                <p>Your deposit will be added to your balance after verification (usually within 1-2 hours).</p>
-                <p id="request-details" style="font-size: 14px;"></p>
-                <p style="margin-top:20px; font-size:14px;">For any issues, contact us on WhatsApp:</p>
-                <a href="https://wa.me/923032827566" target="_blank" style="font-size:18px;"><strong>+923032827566</strong></a>
-            </div>
-            <button onclick="window.location.href='dashboard.html'" style="margin-top: 20px;">Back to Dashboard</button>
-        </div>
+        <!-- ... (Poora HTML waisa hi rahega) ... -->
     </div>
-
 <script>
     const SUPABASE_URL = 'https://lyqdnxaxisnipeogtzfm.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx5cWRueGF4aXNuaXBlb2d0emZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE2MDA5NzEsImV4cCI6MjA2NzE3Njk3MX0.RLhRacgqtvXk2-qaQ3ZCLYkcshg5_kIN5Mko6WMouWw';
+    const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY'; // Apni key daalein
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     let currentUser = null;
+    let screenshotDataUrl = null; // Screenshot ka Base64 data save karne ke liye
 
-    // DOM Elements
-    const step1 = document.getElementById('step1');
-    const step2 = document.getElementById('step2');
-    const step3 = document.getElementById('step3');
-    const screenshotFile = document.getElementById('screenshot-file');
-    const submitBtn = document.getElementById('submit-deposit-btn');
-    
-    // User session check
-    async function checkUser() {
-        const { data: { session } } = await supabaseClient.auth.getSession();
-        if (!session) { window.location.href = 'auth.html'; return; }
-        currentUser = session.user;
-    }
-    checkUser();
+    // ... (DOM Elements aur checkUser function waisay hi hain) ...
 
-    // Step 1 to Step 2
-    document.getElementById('next-btn').addEventListener('click', () => {
-        const amount = document.getElementById('amount').value;
-        const method = document.getElementById('method').value;
-        const senderNumber = document.getElementById('sender-number').value.trim();
-        if (!amount || amount < 50 || !senderNumber) {
-            alert("Please fill all fields correctly. Minimum deposit is 50 PKR.");
-            return;
-        }
-        document.getElementById('payment-amount').innerText = `${amount} PKR`;
-        document.getElementById('payment-method').innerText = method;
-        step1.classList.remove('active');
-        step2.classList.add('active');
-    });
-
-    // Back button
-    document.getElementById('back-btn').addEventListener('click', () => {
-        step2.classList.remove('active');
-        step1.classList.add('active');
-    });
-
-    // Screenshot upload handling
-    screenshotFile.addEventListener('change', (e) => {
+    // Screenshot upload handling (Updated)
+    document.getElementById('screenshot-file').addEventListener('change', (e) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
-            // File size check (e.g., 5MB limit)
-            if (file.size > 5 * 1024 * 1024) {
-                alert("File is too large. Please upload an image under 5MB.");
-                e.target.value = ''; // Reset the input
+            if (file.size > 2 * 1024 * 1024) { // Limit 2MB kar di
+                alert("Image is too large. Please upload an image under 2MB.");
                 return;
             }
             const reader = new FileReader();
             reader.onload = (event) => {
-                document.getElementById('screenshot-preview').src = event.target.result;
+                // Base64 data ko variable mein save karein
+                screenshotDataUrl = event.target.result;
+                document.getElementById('screenshot-preview').src = screenshotDataUrl;
                 document.getElementById('screenshot-preview').style.display = 'block';
             };
             reader.readAsDataURL(file);
-            submitBtn.disabled = false;
+            document.getElementById('submit-deposit-btn').disabled = false;
         }
     });
 
-    // Submit Deposit Request
-    submitBtn.addEventListener('click', async () => {
-        submitBtn.disabled = true;
-        submitBtn.innerText = "Submitting...";
-        
-        const file = screenshotFile.files[0];
-        const fileName = `${currentUser.id}-${Date.now()}`;
-
-        // 1. Upload screenshot to Supabase Storage
-        const { data: uploadData, error: uploadError } = await supabaseClient.storage
-            .from('deposit-screenshots')
-            .upload(fileName, file);
-
-        if (uploadError) {
-            alert("Error uploading screenshot: " + uploadError.message);
-            submitBtn.disabled = false;
-            submitBtn.innerText = "Submit Deposit Request";
+    // Submit Deposit Request (Updated)
+    document.getElementById('submit-deposit-btn').addEventListener('click', async () => {
+        if (!screenshotDataUrl) {
+            alert("Please upload a screenshot.");
             return;
         }
+        
+        const submitBtn = document.getElementById('submit-deposit-btn');
+        submitBtn.disabled = true;
+        submitBtn.innerText = "Submitting...";
 
-        const { data: urlData } = supabaseClient.storage.from('deposit-screenshots').getPublicUrl(fileName);
-
-        // 2. Save request to database
+        // Ab hum Supabase Storage istemal nahi kar rahe
         const request = {
             user_id: currentUser.id,
             method: document.getElementById('method').value,
             amount: document.getElementById('amount').value,
             sender_number: document.getElementById('sender-number').value,
-            screenshot_url: urlData.publicUrl
+            // Direct Base64 text ko database mein bhejien
+            screenshot_base64: screenshotDataUrl 
         };
 
         const { data: requestData, error: requestError } = await supabaseClient.from('deposit_requests').insert(request).select().single();
         
         if (requestError) {
             alert("Error submitting request: " + requestError.message);
-            submitBtn.disabled = false;
-            submitBtn.innerText = "Submit Deposit Request";
         } else {
-            document.getElementById('request-details').innerHTML = `
-                Request ID: ${requestData.id}<br>
-                Amount: ${requestData.amount} PKR<br>
-                Method: ${requestData.method}`;
-            step2.classList.remove('active');
-            step3.classList.add('active');
+            // ... (Confirmation screen waisi hi hai) ...
+            document.getElementById('step2').classList.remove('active');
+            document.getElementById('step3').classList.add('active');
         }
+        submitBtn.disabled = false;
+        submitBtn.innerText = "Submit Deposit Request";
     });
+    
+    // ... (Baqi ka JS code waisa hi rahega) ...
 </script>
 </body>
 </html>
