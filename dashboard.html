@@ -18,6 +18,7 @@
             font-family: 'Inter', sans-serif; background-color: var(--bg-dark); color: var(--text-color);
             display: flex; justify-content: center; align-items: flex-start;
             min-height: 100vh; padding: 0; box-sizing: border-box;
+            transition: opacity 0.3s ease-in-out; /* Smooth fade-in */
         }
         .container {
             width: 100%; max-width: 500px;
@@ -44,10 +45,13 @@
         .balance-card { background: linear-gradient(45deg, var(--primary-color), var(--primary-light)); padding: 20px; border-radius: 12px; text-align: center; margin: 15px 0; color: white; }
         .balance-amount { font-size: 28px; font-weight: 700; }
         .card { background: #29364a; padding: 25px; border-radius: 12px; margin-top: 20px; }
+        .order-form-grid { display: block; }
+        @media (min-width: 550px) { .order-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; } }
         #total-cost-card { text-align: center; background: var(--bg-dark); padding: 15px; border-radius: 8px; margin-top: 10px; }
         #total-cost { color: var(--secondary-color); font-size: 24px; }
         .order-list { list-style: none; padding: 0; max-height: 250px; overflow-y: auto; }
         .order-item { background: #3b4b64; padding: 15px; border-radius: 8px; margin-bottom: 10px; font-size: 14px; }
+        .order-item strong { color: var(--primary-light); }
         .status { font-weight: bold; }
         .status.In-Progress { color: #f1c40f; }
         .status.Completed { color: var(--secondary-color); }
@@ -57,7 +61,7 @@
         .btn-tertiary { background-color: #555; }
     </style>
 </head>
-<body>
+<body style="opacity: 0;"> <!-- Shuru mein body ko invisible rakhein -->
     <div class="container">
         <div class="dashboard-header">
             <h2>Welcome, <span id="username">User</span>!</h2>
@@ -77,10 +81,10 @@
             <h2>Place New Order</h2>
             <label for="service-select">1. Select Service</label>
             <select id="service-select">
-                <option value="DeNet Referrals" data-price="10" data-label="Your DeNet Code" data-placeholder="Enter DeNet Code">DeNet Referrals</option>
-                <option value="Instagram Followers" data-price="2" data-label="Your Instagram Username" data-placeholder="e.g., cristiano">Instagram Followers</option>
-                <option value="TikTok Likes" data-price="1" data-label="TikTok Video Link" data-placeholder="Paste TikTok video link...">TikTok Likes</option>
-                <option value="Facebook Page Likes" data-price="3" data-label="Facebook Page Link" data-placeholder="Paste Facebook page link...">Facebook Page Likes</option>
+                <option value="DeNet Referrals" data-price="10" data-label="Your DeNet Code" data-placeholder="Enter DeNet Code" data-min="5">DeNet Referrals</option>
+                <option value="Instagram Followers" data-price="2" data-label="Your Instagram Username" data-placeholder="e.g., cristiano" data-min="100">Instagram Followers</option>
+                <option value="TikTok Likes" data-price="1" data-label="TikTok Video Link" data-placeholder="Paste TikTok video link..." data-min="50">TikTok Likes</option>
+                <option value="Facebook Page Likes" data-price="3" data-label="Facebook Page Link" data-placeholder="Paste Facebook page link..." data-min="100">Facebook Page Likes</option>
             </select>
             
             <label id="input-label" for="ref-code">2. Your DeNet Code</label>
@@ -97,7 +101,7 @@
         
         <div class="card">
             <h2>My Recent Orders</h2>
-            <ul id="order-list" class="order-list"></ul>
+            <ul id="order-list" class="order-list"><li>Loading...</li></ul>
         </div>
     </div>
 
@@ -114,29 +118,22 @@
     const quantityLabel = document.getElementById('quantity-label');
     const totalCostEl = document.getElementById('total-cost');
     
-    // Function to update the form based on selected service
     function updateOrderForm() {
         const selectedOption = serviceSelect.selectedOptions[0];
         const price = parseFloat(selectedOption.dataset.price);
         const label = selectedOption.dataset.label;
         const placeholder = selectedOption.dataset.placeholder;
-        const quantity = parseInt(quantityInput.value) || 0;
+        const minQuantity = parseInt(selectedOption.dataset.min);
+        let quantity = parseInt(quantityInput.value) || minQuantity;
         
         inputLabel.textContent = `2. ${label}`;
         refCodeInput.placeholder = placeholder;
-        
-        let minQuantity = 5;
-        if (selectedOption.value === "Instagram Followers") minQuantity = 100;
-        if (selectedOption.value === "TikTok Likes") minQuantity = 50;
-        if (selectedOption.value === "Facebook Page Likes") minQuantity = 100;
-        
         quantityInput.min = minQuantity;
-        if (quantity < minQuantity) {
-            quantityInput.value = minQuantity;
-        }
+        if (quantity < minQuantity) quantity = minQuantity;
+        quantityInput.value = quantity;
         quantityLabel.textContent = `3. Quantity (Min ${minQuantity})`;
         
-        totalCostEl.innerText = `${(quantityInput.value * price).toFixed(2)} PKR`;
+        totalCostEl.innerText = `${(quantity * price).toFixed(2)} PKR`;
     }
 
     serviceSelect.addEventListener('change', updateOrderForm);
@@ -144,7 +141,6 @@
 
     async function placeNewOrder() {
         const btn = document.getElementById('place-order-btn'); btn.disabled = true; btn.innerText = "Placing...";
-        
         const selectedOption = serviceSelect.selectedOptions[0];
         const service = selectedOption.value;
         const referralCode = refCodeInput.value.trim();
@@ -153,25 +149,17 @@
         const cost = referralCount * price;
 
         if (!referralCode || referralCount < parseInt(quantityInput.min)) {
-            alert("Please fill all fields correctly and meet the minimum quantity.");
-            btn.disabled = false; btn.innerText = "Confirm & Place Order";
-            return;
+            alert(`Please fill all fields correctly. Minimum quantity is ${quantityInput.min}.`);
+            btn.disabled = false; btn.innerText = "Confirm & Place Order"; return;
         }
         if (currentUser.balance < cost) {
-            alert("Insufficient balance.");
-            btn.disabled = false; btn.innerText = "Confirm & Place Order";
-            return;
+            alert("Insufficient balance. Please deposit first.");
+            btn.disabled = false; btn.innerText = "Confirm & Place Order"; return;
         }
         
         const newBalance = currentUser.balance - cost;
         await supabaseClient.from('profiles').update({ balance: newBalance }).eq('id', currentUser.id);
-        const { error } = await supabaseClient.from('orders').insert({
-            user_id: currentUser.id,
-            service_name: service,
-            referral_code: referralCode,
-            total_referrals: referralCount,
-        });
-        
+        const { error } = await supabaseClient.from('orders').insert({ user_id: currentUser.id, service_name: service, referral_code: referralCode, total_referrals: referralCount });
         if (error) { 
             await supabaseClient.from('profiles').update({ balance: currentUser.balance }).eq('id', currentUser.id);
             alert("Error placing order: " + error.message);
@@ -181,21 +169,55 @@
         }
         btn.disabled = false; btn.innerText = "Confirm & Place Order";
     }
+    
+    async function checkUserSession() {
+        try {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) { window.location.href = 'auth.html'; return; }
+            const { data, error } = await supabaseClient.from('profiles').select().eq('id', session.user.id).single();
+            if (error || !data) { window.location.href = 'auth.html'; } 
+            else { 
+                currentUser = data; 
+                document.body.style.opacity = 1; // AB YAHAN PAGE KO VISIBLE KAREIN
+                updateDashboardUI(); 
+                listenToRealtimeChanges(); 
+            }
+        } catch(e) {
+             window.location.href = 'auth.html';
+        }
+    }
+    
+    function updateDashboardUI() {
+        document.getElementById('username').innerText = currentUser.username;
+        document.getElementById('balance').innerText = parseFloat(currentUser.balance).toFixed(2);
+        loadUserOrders();
+    }
 
-    // Baqi ka JS code bilkul waisa hi rahega
-    async function checkUserSession() { /* ... */ }
-    function updateDashboardUI() { /* ... */ }
-    async function loadUserOrders() { /* ... */ }
-    function listenToRealtimeChanges() { /* ... */ }
+    async function loadUserOrders() {
+        const { data } = await supabaseClient.from('orders').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false }).limit(10);
+        const orderList = document.getElementById('order-list');
+        orderList.innerHTML = data.length === 0 ? '<li>No orders found.</li>' : data.map(order => `
+            <li class="order-item">
+                <strong>${order.service_name} (#${order.id})</strong><br>
+                Target: ${order.referral_code}<br>
+                Progress: ${order.completed_referrals}/${order.total_referrals}<br>
+                Status: <span class="status ${order.status.replace(' ', '-')}">${order.status}</span>
+            </li>`).join('');
+    }
+
+    function listenToRealtimeChanges() {
+        supabaseClient.channel('public:profiles').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${currentUser.id}` }, payload => { currentUser.balance = payload.new.balance; updateDashboardUI(); }).subscribe();
+        supabaseClient.channel('public:orders').on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `user_id=eq.${currentUser.id}` }, loadUserOrders).subscribe();
+    }
     
     document.getElementById('deposit-btn').addEventListener('click', () => { window.location.href = 'deposit.html'; });
     document.getElementById('history-btn').addEventListener('click', () => { window.location.href = 'history.html'; });
     document.getElementById('logout-btn').addEventListener('click', () => supabaseClient.auth.signOut().then(() => window.location.href = 'index.html'));
     document.getElementById('place-order-btn').addEventListener('click', placeNewOrder);
     
-    document.body.style.opacity = 0;
+    // Initial call
     checkUserSession().then(() => {
-        updateOrderForm(); // Initial form setup
+        if(currentUser) updateOrderForm(); // Initial form setup
     });
 </script>
 </body>
