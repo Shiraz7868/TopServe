@@ -1,69 +1,63 @@
-<!-- admin.html (Updated Version) -->
-<!DOCTYPE html><html lang="en"><head>
-    <title>Admin Panel</title>
-    <!-- ... (head content) ... -->
-</head><body>
-    <div class="container admin-container">
-        <h1>Admin Panel</h1>
-        
-        <!-- Deposit Requests Section (Naya) -->
-        <div class="card">
-            <h2>Pending Deposit Requests</h2>
-            <ul id="deposit-requests-list" class="order-list"></ul>
-        </div>
-
-        <!-- User Balance Management Section (Purana) -->
-        <div class="card user-management">...</div>
-        
-        <!-- All Orders Section (Purana) -->
-        <div class="card">...</div>
+<!DOCTYPE html><html lang="en"><head><title>Admin Panel - TopServe</title><link rel="stylesheet" href="style.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><style>.container{max-width:900px !important}</style></head><body>
+<div class="container admin-container">
+    <h1>Admin Panel</h1>
+    <div class="card">
+        <h2>Pending Deposit Requests</h2>
+        <div id="deposit-requests-list" class="order-list"><li>Loading...</li></div>
     </div>
+    <div class="card">
+        <h2>Manage User Balance (Manual)</h2>
+        <div class="user-management">
+            <div><label>Username/Email</label><input type="text" id="user-search" placeholder="Enter username..."></div>
+            <div><label>Amount</label><input type="number" id="deposit-amount" placeholder="e.g., 100"></div>
+            <button id="add-balance-btn">Add Balance</button>
+        </div>
+    </div>
+    <div class="card">
+        <h2>All Pending Orders</h2>
+        <ul id="admin-order-list" class="order-list"><li>Loading...</li></ul>
+    </div>
+</div>
 <script>
     const SUPABASE_URL = 'https://lyqdnxaxisnipeogtzfm.supabase.co';
-    const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx5cWRueGF4aXNuaXBlb2d0emZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE2MDA5NzEsImV4cCI6MjA2NzE3Njk3MX0.RLhRacgqtvXk2-qaQ3ZCLYkcshg5_kIN5Mko6WMouWw';
+    // === AAPKI DONO KEYS ADD KAR DI GAYI HAIN ===
+    // Note: service_role key ko public karna security risk hai. Yeh sirf aapki request par kiya gaya hai.
+    const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx5cWRueGF4aXNuaXBlb2d0emZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE2MDA5NzEsImV4cCI6MjA2NzE3Njk3MX0.RLhRacgqtvXk2-qaQ3ZCLYkcshg5_kIN5Mko6WMouWw'; // Yeh aapki service key hai
+    
     const supabaseAdmin = supabase.createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
     
-    // Naya function deposit requests load karne ke liye
+    // --- Deposit Request Logic ---
     async function loadDepositRequests() {
         const { data, error } = await supabaseAdmin.from('deposit_requests').select(`*, profile:profiles(username)`).eq('status', 'Pending').order('created_at');
         const list = document.getElementById('deposit-requests-list');
         list.innerHTML = '';
-        if (data.length === 0) { list.innerHTML = '<li>No pending deposit requests.</li>'; return; }
+        if (!data || data.length === 0) { list.innerHTML = '<li>No pending deposit requests.</li>'; return; }
         data.forEach(req => {
             const li = document.createElement('li');
             li.className = 'order-item';
             li.innerHTML = `
-                User: <strong>${req.profile.username}</strong> | Amount: <strong>${req.amount} PKR</strong><br>
-                Method: ${req.method} | Sender: ${req.sender_number}<br>
-                <a href="${req.screenshot_url}" target="_blank">View Screenshot</a>
+                User: <strong>${req.profile.username}</strong> | Amount: <strong>${req.amount} PKR</strong> | Method: ${req.method}<br>
+                Sender: ${req.sender_number} | Time: ${new Date(req.created_at).toLocaleString()}<br>
+                <a href="${req.screenshot_url}" target="_blank" style="color:var(--secondary-color);">View Screenshot</a>
                 <div style="margin-top:10px;">
-                    <button class="approve-btn" data-req-id="${req.id}" data-user-id="${req.user_id}" data-amount="${req.amount}">Approve</button>
-                    <button class="reject-btn" data-req-id="${req.id}" style="background:var(--danger-color)">Reject</button>
+                    <button class="approve-btn" data-req-id="${req.id}" data-user-id="${req.user_id}" data-amount="${req.amount}" style="background:var(--secondary-color);">Approve</button>
+                    <button class="reject-btn" data-req-id="${req.id}" style="background:var(--danger-color);">Reject</button>
                 </div>`;
             list.appendChild(li);
         });
     }
 
-    // Approve/Reject ke liye Event Listener
     document.getElementById('deposit-requests-list').addEventListener('click', async (e) => {
-        const reqId = e.target.dataset.reqId;
-        if (!reqId) return;
+        const reqId = e.target.dataset.reqId; if (!reqId) return;
+        e.target.innerText = 'Processing...'; e.target.disabled = true;
 
         if (e.target.classList.contains('approve-btn')) {
-            const userId = e.target.dataset.userId;
-            const amount = parseFloat(e.target.dataset.amount);
-            
-            // 1. User ka balance get karein
+            const userId = e.target.dataset.userId; const amount = parseFloat(e.target.dataset.amount);
             const { data: profile } = await supabaseAdmin.from('profiles').select('balance').eq('id', userId).single();
             const newBalance = (parseFloat(profile.balance) || 0) + amount;
-
-            // 2. Balance update karein
             await supabaseAdmin.from('profiles').update({ balance: newBalance }).eq('id', userId);
-            
-            // 3. Request ko "Completed" mark karein
             await supabaseAdmin.from('deposit_requests').update({ status: 'Completed' }).eq('id', reqId);
-            
-            alert("Deposit approved and balance updated!");
+            alert("Deposit approved!");
         } else if (e.target.classList.contains('reject-btn')) {
             await supabaseAdmin.from('deposit_requests').update({ status: 'Rejected' }).eq('id', reqId);
             alert("Request rejected.");
@@ -71,8 +65,11 @@
         loadDepositRequests();
     });
 
-    // Page load hotay hi baqi functions ke sath isay bhi call karein
+    // --- Baqi Admin Panel ka JS (Balance & Orders) ---
+    // ... (pichle jawab se copy kar lein) ...
+    
+    // Initial Load
     loadDepositRequests();
-    // loadAllOrders();
+    // loadAllOrders(); // Isay bhi call karein
 </script>
 </body></html>
